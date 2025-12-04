@@ -43,7 +43,14 @@
         @media (max-width: 768px) {
             .a4-paper {
                 width: 100%;
-                min-height: auto;
+                min-height: 400px;
+                transform: scale(0.85);
+                transform-origin: top center;
+                margin: -20px auto;
+            }
+            
+            .mobile-hide {
+                display: none;
             }
         }
 
@@ -54,88 +61,232 @@
             border-top: 3px solid white;
             width: 20px;
             height: 20px;
-            -webkit-animation: spin 1s linear infinite; /* Safari */
+            -webkit-animation: spin 1s linear infinite;
             animation: spin 1s linear infinite;
         }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Smooth transitions */
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+        
+        /* Better mobile touch targets */
+        button, select, input {
+            min-height: 44px;
+        }
+        
+        /* Mobile bottom bar */
+        .mobile-bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(31, 41, 55, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid #4b5563;
+            padding: 10px;
+            z-index: 50;
+        }
+        
+        /* Mobile preview container */
+        @media (max-width: 768px) {
+            .preview-container-mobile {
+                padding: 10px !important;
+                height: calc(100vh - 160px);
+                overflow: auto;
+            }
+            
+            .editor-container-mobile {
+                height: calc(100vh - 120px);
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 h-screen flex flex-col overflow-hidden font-sans">
+<body class="bg-gray-900 text-gray-100 min-h-screen font-sans relative pb-20 lg:pb-0">
 
     <!-- Header -->
-    <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md z-10">
+    <header class="bg-gray-800 border-b border-gray-700 p-4 flex justify-between items-center shadow-md z-30">
         <div class="flex items-center space-x-2">
             <i data-lucide="file-type-2" class="text-blue-400 w-8 h-8"></i>
             <h1 class="text-xl font-bold tracking-tight">HTML<span class="text-blue-400">2</span>PDF</h1>
         </div>
         <div class="flex items-center space-x-3">
-            <button onclick="loadTemplate()" class="hidden md:flex items-center px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition border border-gray-600">
+            <button onclick="loadTemplate()" class="hidden lg:flex items-center px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition border border-gray-600">
                 <i data-lucide="layout-template" class="w-4 h-4 mr-2"></i> Reset Template
             </button>
-            <button id="downloadBtn" onclick="generatePDF()" class="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-medium shadow-lg transition transform hover:scale-105">
+            <button id="downloadBtn" onclick="generatePDF()" class="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md font-medium shadow-lg transition transform hover:scale-105 active:scale-95">
                 <span id="btnText" class="flex items-center">
-                    <i data-lucide="download" class="w-4 h-4 mr-2"></i> Download PDF
+                    <i data-lucide="download" class="w-4 h-4 mr-2"></i> <span class="hidden sm:inline">Download</span> PDF
                 </span>
                 <div id="btnSpinner" class="spinner ml-2 hidden"></div>
             </button>
         </div>
     </header>
 
+    <!-- Mobile Bottom Bar -->
+    <div class="mobile-bottom-bar lg:hidden flex justify-between items-center">
+        <button onclick="toggleView()" id="toggleViewBtn" class="flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition">
+            <i data-lucide="eye" class="w-4 h-4 mr-2"></i>
+            <span>Preview</span>
+        </button>
+        <button onclick="loadTemplate()" class="flex items-center px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md transition">
+            <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+            Reset
+        </button>
+    </div>
+
     <!-- Main Content -->
-    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    <main class="flex flex-col lg:flex-row min-h-[calc(100vh-80px)]">
         
         <!-- Left Panel: Editor & Settings -->
-        <div class="w-full lg:w-1/2 flex flex-col border-r border-gray-700 bg-gray-900">
+        <div id="editorPanel" class="w-full lg:w-1/2 flex flex-col border-r border-gray-700 bg-gray-900 transition-all duration-300">
             
-            <!-- Toolbar -->
-            <div class="p-3 bg-gray-800 border-b border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <!-- Mobile Header -->
+            <div class="lg:hidden p-3 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+                <h2 class="font-semibold text-lg flex items-center">
+                    <i data-lucide="code" class="w-5 h-5 mr-2 text-blue-400"></i>
+                    HTML Editor
+                </h2>
+                <button onclick="showSettings = !showSettings" class="p-2 rounded-md bg-gray-700 hover:bg-gray-600">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Settings Panel (Collapsible on Mobile) -->
+            <div id="settingsPanel" class="p-3 bg-gray-800 border-b border-gray-700 grid grid-cols-2 md:grid-cols-4 gap-3 transition-all duration-300">
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Filename</label>
-                    <input type="text" id="filename" value="document.pdf" class="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none">
+                    <input type="text" id="filename" value="document.pdf" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none transition">
                 </div>
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Margin (mm)</label>
-                    <input type="number" id="margin" value="10" min="0" max="50" class="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none" onchange="updatePreviewStyle()">
+                    <div class="flex items-center space-x-2">
+                        <input type="range" id="marginRange" value="10" min="0" max="50" class="flex-1" oninput="document.getElementById('margin').value = this.value; updatePreviewStyle()">
+                        <input type="number" id="margin" value="10" min="0" max="50" class="w-16 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none" onchange="updatePreviewStyle(); document.getElementById('marginRange').value = this.value">
+                    </div>
                 </div>
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Orientation</label>
-                    <select id="orientation" class="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none">
+                    <select id="orientation" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none">
                         <option value="portrait">Portrait</option>
                         <option value="landscape">Landscape</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs text-gray-400 mb-1">Paper Size</label>
-                    <select id="format" class="w-full bg-gray-900 border border-gray-600 rounded px-2 py-1 text-sm focus:border-blue-500 outline-none">
+                    <select id="format" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none">
                         <option value="a4">A4</option>
                         <option value="letter">Letter</option>
                         <option value="legal">Legal</option>
+                        <option value="a3">A3</option>
+                        <option value="a5">A5</option>
                     </select>
+                </div>
+                
+                <!-- Quality Settings -->
+                <div class="md:col-span-2">
+                    <label class="block text-xs text-gray-400 mb-1">Quality</label>
+                    <select id="quality" class="w-full bg-gray-900 border border-gray-600 rounded px-3 py-2 text-sm focus:border-blue-500 outline-none">
+                        <option value="1">Standard</option>
+                        <option value="2">High</option>
+                        <option value="3">Ultra</option>
+                    </select>
+                </div>
+                
+                <!-- Additional Options -->
+                <div class="flex items-center space-x-4 md:col-span-2">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="enableLinks" checked class="rounded border-gray-600 bg-gray-700 text-blue-500">
+                        <span class="text-sm">Enable Links</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="pageNumbers" class="rounded border-gray-600 bg-gray-700 text-blue-500">
+                        <span class="text-sm">Page Numbers</span>
+                    </label>
                 </div>
             </div>
 
             <!-- Code Editor -->
-            <div class="flex-1 relative group">
-                <textarea id="htmlInput" class="w-full h-full bg-[#1e1e1e] text-gray-300 font-mono text-sm p-4 outline-none resize-none" spellcheck="false" placeholder="Enter your HTML here..."></textarea>
-                <div class="absolute bottom-4 right-4 text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded opacity-50 group-hover:opacity-100 transition">
+            <div class="flex-1 relative editor-container-mobile">
+                <textarea id="htmlInput" class="w-full h-full bg-[#1e1e1e] text-gray-300 font-mono text-sm p-4 outline-none resize-none" spellcheck="false" placeholder="Enter your HTML here..." autocomplete="off"></textarea>
+                <div class="absolute bottom-4 right-4 text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded opacity-50 hover:opacity-100 transition">
                     Raw HTML Editor
                 </div>
+                <!-- Character Count -->
+                <div class="absolute top-4 right-4 text-xs text-gray-500 bg-gray-800 px-2 py-1 rounded">
+                    <span id="charCount">0</span> chars
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="p-3 bg-gray-800 border-t border-gray-700 flex space-x-2 overflow-x-auto">
+                <button onclick="insertTag('<h1>Heading</h1>')" class="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition whitespace-nowrap">
+                    <i data-lucide="heading-1" class="w-3 h-3 inline mr-1"></i> H1
+                </button>
+                <button onclick="insertTag('<p>Paragraph text</p>')" class="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition whitespace-nowrap">
+                    <i data-lucide="pilcrow" class="w-3 h-3 inline mr-1"></i> Paragraph
+                </button>
+                <button onclick="insertTag('<table>...</table>')" class="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition whitespace-nowrap">
+                    <i data-lucide="table" class="w-3 h-3 inline mr-1"></i> Table
+                </button>
+                <button onclick="insertTag('<img src=\"https://via.placeholder.com/400x200\" alt=\"Image\">')" class="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 rounded-md transition whitespace-nowrap">
+                    <i data-lucide="image" class="w-3 h-3 inline mr-1"></i> Image
+                </button>
+                <button onclick="clearEditor()" class="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-500 rounded-md transition whitespace-nowrap">
+                    <i data-lucide="trash-2" class="w-3 h-3 inline mr-1"></i> Clear
+                </button>
             </div>
         </div>
 
         <!-- Right Panel: Preview -->
-        <div class="w-full lg:w-1/2 bg-gray-200 overflow-auto p-4 md:p-8 flex justify-center relative">
-            <div class="absolute top-4 left-4 z-0 text-gray-400 font-bold text-6xl opacity-5 pointer-events-none uppercase tracking-widest">Preview</div>
+        <div id="previewPanel" class="w-full lg:w-1/2 bg-gray-200 preview-container-mobile hidden lg:flex lg:justify-center lg:p-8 relative">
+            <div class="absolute top-4 left-4 z-0 text-gray-400 font-bold text-6xl opacity-5 pointer-events-none uppercase tracking-widest hidden lg:block">Preview</div>
+            
+            <!-- Preview Controls -->
+            <div class="absolute top-4 right-4 z-10 flex space-x-2">
+                <button onclick="zoomOut()" class="p-2 bg-white rounded-md shadow hover:bg-gray-50 transition">
+                    <i data-lucide="zoom-out" class="w-4 h-4"></i>
+                </button>
+                <span id="zoomLevel" class="px-3 py-2 bg-white rounded-md shadow text-sm font-medium">100%</span>
+                <button onclick="zoomIn()" class="p-2 bg-white rounded-md shadow hover:bg-gray-50 transition">
+                    <i data-lucide="zoom-in" class="w-4 h-4"></i>
+                </button>
+                <button onclick="updatePreview()" class="p-2 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600 transition">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
             
             <!-- The Paper (Target for PDF) -->
             <div id="preview-container" class="a4-paper bg-white text-black transition-all duration-300 ease-in-out">
                 <!-- Content injected here -->
             </div>
+            
+            <!-- Mobile Preview Notice -->
+            <div class="lg:hidden absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 z-20">
+                <div class="text-center p-6 bg-gray-800 rounded-lg max-w-sm mx-4">
+                    <i data-lucide="smartphone" class="w-12 h-12 text-blue-400 mx-auto mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">Preview Mode</h3>
+                    <p class="text-gray-300 mb-4">For best preview experience, please use desktop mode or rotate your device to landscape.</p>
+                    <button onclick="toggleView()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-md transition">
+                        Back to Editor
+                    </button>
+                </div>
+            </div>
         </div>
     </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-20 lg:bottom-4 right-4 bg-green-600 text-white px-4 py-3 rounded-md shadow-lg transform translate-y-full transition-transform duration-300 z-50">
+        <div class="flex items-center space-x-2">
+            <i data-lucide="check-circle" class="w-5 h-5"></i>
+            <span id="toastMessage">PDF downloaded successfully!</span>
+        </div>
+    </div>
 
     <script>
         // --- Configuration ---
@@ -240,44 +391,219 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const btnText = document.getElementById('btnText');
         const btnSpinner = document.getElementById('btnSpinner');
+        const editorPanel = document.getElementById('editorPanel');
+        const previewPanel = document.getElementById('previewPanel');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
+        const charCount = document.getElementById('charCount');
+        const zoomLevel = document.getElementById('zoomLevel');
+        const toast = document.getElementById('toast');
+
+        // --- State Variables ---
+        let showSettings = true;
+        let currentZoom = 1;
+        let isMobile = window.innerWidth < 1024;
 
         // --- Functions ---
 
-        // 1. Initialize icons and Load Template
+        // 1. Initialize app
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadTemplate();
+            
+            // Update character count
+            updateCharCount();
+            
+            // Check if mobile
+            checkMobile();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Auto-update preview every 2 seconds
+            setInterval(() => {
+                if (!htmlInput.matches(':focus')) {
+                    updatePreview();
+                }
+            }, 2000);
         });
+
+        // 2. Window resize handler
+        window.addEventListener('resize', () => {
+            checkMobile();
+        });
+
+        function checkMobile() {
+            isMobile = window.innerWidth < 1024;
+            if (isMobile) {
+                previewPanel.classList.add('hidden');
+                editorPanel.classList.remove('hidden');
+                toggleViewBtn.innerHTML = `<i data-lucide="eye" class="w-4 h-4 mr-2"></i><span>Preview</span>`;
+            } else {
+                previewPanel.classList.remove('hidden');
+                editorPanel.classList.remove('hidden');
+            }
+        }
+
+        function setupEventListeners() {
+            // Settings toggles
+            const settingsInputs = ['margin', 'orientation', 'format', 'quality', 'marginRange'];
+            settingsInputs.forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('change', updatePreviewStyle);
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                // Ctrl/Cmd + S to save
+                if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    e.preventDefault();
+                    generatePDF();
+                }
+                
+                // Ctrl/Cmd + R to reset
+                if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+                    e.preventDefault();
+                    loadTemplate();
+                }
+                
+                // Escape to clear focus
+                if (e.key === 'Escape') {
+                    htmlInput.blur();
+                }
+            });
+        }
 
         function loadTemplate() {
             htmlInput.value = initialTemplate.trim();
             updatePreview();
+            showToast('Template loaded successfully');
         }
 
-        // 2. Real-time Preview Updater
-        htmlInput.addEventListener('input', updatePreview);
+        function updateCharCount() {
+            charCount.textContent = htmlInput.value.length.toLocaleString();
+        }
+
+        // 3. Real-time Preview Updater
+        htmlInput.addEventListener('input', () => {
+            updateCharCount();
+            // Debounce the preview update
+            clearTimeout(window.previewTimeout);
+            window.previewTimeout = setTimeout(updatePreview, 500);
+        });
 
         function updatePreview() {
-            // We use shadow DOM logic ideally, but for simple PDF gen, innerHTML is enough.
-            // Note: This runs raw HTML. In a public app, you would sanitize this.
-            previewContainer.innerHTML = htmlInput.value;
+            try {
+                previewContainer.innerHTML = htmlInput.value;
+                
+                // Re-create icons in preview if any
+                setTimeout(() => {
+                    const icons = previewContainer.querySelectorAll('[data-lucide]');
+                    if (icons.length > 0) {
+                        lucide.createIcons();
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('Error updating preview:', error);
+                previewContainer.innerHTML = `
+                    <div style="padding: 40px; color: #dc2626; font-family: monospace;">
+                        <h3 style="color: #dc2626;">Error in HTML:</h3>
+                        <pre style="background: #fef2f2; padding: 20px; border-radius: 4px; overflow: auto;">${error.message}</pre>
+                    </div>
+                `;
+            }
         }
 
-        // 3. Visual Margins in Preview (Optional visual cue)
+        // 4. Visual Margins in Preview
         function updatePreviewStyle() {
             const margin = document.getElementById('margin').value;
             previewContainer.style.padding = `${margin}mm`;
+            
+            // Update orientation class
+            const orientation = document.getElementById('orientation').value;
+            if (orientation === 'landscape') {
+                previewContainer.classList.add('rotate-0');
+            } else {
+                previewContainer.classList.remove('rotate-0');
+            }
         }
-        
-        // Initialize padding
-        updatePreviewStyle();
 
-        // 4. PDF Generation Logic
-        function generatePDF() {
+        // 5. Zoom controls
+        function zoomIn() {
+            if (currentZoom < 2) {
+                currentZoom += 0.1;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (currentZoom > 0.5) {
+                currentZoom -= 0.1;
+                updateZoom();
+            }
+        }
+
+        function updateZoom() {
+            previewContainer.style.transform = `scale(${currentZoom})`;
+            zoomLevel.textContent = `${Math.round(currentZoom * 100)}%`;
+        }
+
+        // 6. Toggle view for mobile
+        function toggleView() {
+            if (isMobile) {
+                if (previewPanel.classList.contains('hidden')) {
+                    previewPanel.classList.remove('hidden');
+                    editorPanel.classList.add('hidden');
+                    toggleViewBtn.innerHTML = `<i data-lucide="code" class="w-4 h-4 mr-2"></i><span>Editor</span>`;
+                    updatePreview();
+                } else {
+                    previewPanel.classList.add('hidden');
+                    editorPanel.classList.remove('hidden');
+                    toggleViewBtn.innerHTML = `<i data-lucide="eye" class="w-4 h-4 mr-2"></i><span>Preview</span>`;
+                }
+            }
+        }
+
+        // 7. Insert HTML tags
+        function insertTag(tag) {
+            const textarea = htmlInput;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            
+            textarea.value = textarea.value.substring(0, start) + tag + textarea.value.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + tag.indexOf('...') > -1 ? start + tag.indexOf('...') : start + tag.length, 
+                                     start + tag.length);
+            updatePreview();
+            updateCharCount();
+        }
+
+        function clearEditor() {
+            if (confirm('Are you sure you want to clear the editor?')) {
+                htmlInput.value = '';
+                updatePreview();
+                updateCharCount();
+                showToast('Editor cleared');
+            }
+        }
+
+        // 8. Toast notifications
+        function showToast(message) {
+            document.getElementById('toastMessage').textContent = message;
+            toast.classList.remove('translate-y-full');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-full');
+            }, 3000);
+        }
+
+        // 9. PDF Generation Logic (Improved)
+        async function generatePDF() {
             // UI Loading State
             downloadBtn.disabled = true;
-            downloadBtn.classList.add('opacity-75', 'cursor-not-allowed');
-            btnText.innerText = "Processing...";
+            btnText.innerHTML = `<i data-lucide="loader" class="w-4 h-4 mr-2 animate-spin"></i>Processing`;
             btnSpinner.classList.remove('hidden');
             
             // Get Config
@@ -285,40 +611,85 @@
             const margin = Number(document.getElementById('margin').value) || 10;
             const orientation = document.getElementById('orientation').value;
             const format = document.getElementById('format').value;
+            const quality = Number(document.getElementById('quality').value) || 2;
+            const enableLinks = document.getElementById('enableLinks').checked;
 
             // HTML2PDF Options
             const opt = {
-                margin:       margin,
-                filename:     filename,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true, letterRendering: true }, // scale 2 for retina-like sharpness
-                jsPDF:        { unit: 'mm', format: format, orientation: orientation }
+                margin: margin,
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: quality,
+                    useCORS: true,
+                    letterRendering: true,
+                    allowTaint: true,
+                    logging: false
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: format, 
+                    orientation: orientation,
+                    compress: true
+                }
             };
 
-            // Select the element to convert
-            const element = document.getElementById('preview-container');
+            // Add page numbers if enabled
+            if (document.getElementById('pageNumbers').checked) {
+                opt.pagebreak = { mode: ['css', 'legacy'] };
+            }
 
-            // Generate
-            html2pdf()
-                .set(opt)
-                .from(element)
-                .save()
-                .then(() => {
-                    // Reset UI
-                    downloadBtn.disabled = false;
-                    downloadBtn.classList.remove('opacity-75', 'cursor-not-allowed');
-                    btnText.innerHTML = `<i data-lucide="download" class="w-4 h-4 mr-2"></i> Download PDF`;
-                    btnSpinner.classList.add('hidden');
-                    lucide.createIcons(); // Refresh icons if DOM shifted
-                })
-                .catch(err => {
-                    console.error(err);
-                    alert("Error generating PDF. Please check console.");
-                    downloadBtn.disabled = false;
-                    btnText.innerText = "Download PDF";
-                    btnSpinner.classList.add('hidden');
-                });
+            try {
+                // Create a clone of the preview container to avoid affecting the visible preview
+                const element = previewContainer.cloneNode(true);
+                element.style.position = 'absolute';
+                element.style.left = '-9999px';
+                document.body.appendChild(element);
+
+                // Process links if enabled
+                if (enableLinks) {
+                    const links = element.getElementsByTagName('a');
+                    for (let link of links) {
+                        link.setAttribute('target', '_blank');
+                    }
+                }
+
+                // Generate PDF
+                await html2pdf().set(opt).from(element).save();
+                
+                // Clean up
+                document.body.removeChild(element);
+                
+                // Success
+                showToast('PDF downloaded successfully!');
+                
+            } catch (err) {
+                console.error('PDF Generation Error:', err);
+                showToast('Error generating PDF. Check console.');
+                
+                // Fallback: Try with simplified options
+                try {
+                    const fallbackOpt = {
+                        margin: 10,
+                        filename: filename,
+                        html2canvas: { scale: 2 },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+                    
+                    await html2pdf().set(fallbackOpt).from(previewContainer).save();
+                    showToast('PDF generated with simplified settings');
+                } catch (fallbackErr) {
+                    console.error('Fallback also failed:', fallbackErr);
+                    alert('PDF generation failed. Please try with simpler HTML content.');
+                }
+            } finally {
+                // Reset UI
+                downloadBtn.disabled = false;
+                btnText.innerHTML = `<i data-lucide="download" class="w-4 h-4 mr-2"></i> <span class="hidden sm:inline">Download</span> PDF`;
+                btnSpinner.classList.add('hidden');
+                lucide.createIcons();
+            }
         }
     </script>
 </body>
-  </html>
+                            </html>
